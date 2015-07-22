@@ -213,6 +213,7 @@ function way_function (way, result)
   local highway = way:get_value_by_key("highway")
   local route = way:get_value_by_key("route")
   local bridge = way:get_value_by_key("bridge")
+  local traffic_segment_code = way:get_value_by_key("traffic_segment_code")
 
   if not ((highway and highway ~= "") or (route and route ~= "") or (bridge and bridge ~= "")) then
     return
@@ -244,6 +245,10 @@ function way_function (way, result)
   local access = find_access_tag(way, access_tags_hierachy)
   if access_tag_blacklist[access] then
     return
+  end
+
+  if traffic_segment_code then
+    result.traffic_segment_code = traffic_segment_code
   end
 
   -- handling ferries and piers
@@ -427,4 +432,3 @@ function way_function (way, result)
     result.backward_speed = math.min(penalized_speed, scaled_speed)
   end
 end
-

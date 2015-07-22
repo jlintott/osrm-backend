@@ -62,7 +62,7 @@ struct InternalExtractorEdge
     };
 
     explicit InternalExtractorEdge()
-        : result(0, 0, 0, 0, false, false, false, false,
+        : result(0, 0, 0, INVALID_TRAFFIC_SEGMENT, 0, false, false, false, false,
                 TRAVEL_MODE_INACCESSIBLE, false)
     {
     }
@@ -70,6 +70,7 @@ struct InternalExtractorEdge
     explicit InternalExtractorEdge(NodeID source,
                            NodeID target,
                            NodeID name_id,
+                           TrafficSegmentID traffic_segment_id,
                            const WeightData& weight_data,
                            bool forward,
                            bool backward,
@@ -77,7 +78,7 @@ struct InternalExtractorEdge
                            bool access_restricted,
                            TravelMode travel_mode,
                            bool is_split)
-        : result(source, target, name_id, 0, forward, backward, roundabout,
+        : result(source, target, name_id, traffic_segment_id, 0, forward, backward, roundabout,
                  access_restricted, travel_mode, is_split),
           weight_data(weight_data)
     {
@@ -94,12 +95,12 @@ struct InternalExtractorEdge
     // necessary static util functions for stxxl's sorting
     static InternalExtractorEdge min_value()
     {
-        return InternalExtractorEdge(0, 0, 0, WeightData(), false, false, false,
+        return InternalExtractorEdge(0, 0, 0, INVALID_TRAFFIC_SEGMENT, WeightData(), false, false, false,
                                      false, TRAVEL_MODE_INACCESSIBLE, false);
     }
     static InternalExtractorEdge max_value()
     {
-        return InternalExtractorEdge(SPECIAL_NODEID, SPECIAL_NODEID, 0, WeightData(), false,
+        return InternalExtractorEdge(SPECIAL_NODEID, SPECIAL_NODEID, 0, INVALID_TRAFFIC_SEGMENT, WeightData(), false,
                                      false, false, false, TRAVEL_MODE_INACCESSIBLE, false);
     }
 };
