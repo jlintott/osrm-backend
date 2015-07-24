@@ -62,7 +62,8 @@ struct SharedDataLayout
         HSGR_CHECKSUM,
         TIMESTAMP,
         FILE_INDEX_PATH,
-        NUM_BLOCKS
+        NUM_BLOCKS,
+        TRAFFIC_SEGMENT_ID_LIST
     };
 
     std::array<uint64_t, NUM_BLOCKS> num_entries;
@@ -105,6 +106,8 @@ struct SharedDataLayout
             << "geometries_list_size:       " << num_entries[GEOMETRIES_LIST];
         SimpleLogger().Write(logDEBUG)
             << "sizeof(checksum):           " << entry_size[HSGR_CHECKSUM];
+        SimpleLogger().Write(logDEBUG)
+            << "traffic_segment_id_list_size: " << num_entries[TRAFFIC_SEGMENT_ID_LIST];
 
         SimpleLogger().Write(logDEBUG) << "NAME_OFFSETS         "
                                        << ": " << GetBlockSize(NAME_OFFSETS);
@@ -140,6 +143,8 @@ struct SharedDataLayout
                                        << ": " << GetBlockSize(TIMESTAMP);
         SimpleLogger().Write(logDEBUG) << "FILE_INDEX_PATH      "
                                        << ": " << GetBlockSize(FILE_INDEX_PATH);
+        SimpleLogger().Write(logDEBUG) << "TRAFFIC_SEGMENT_ID_LIST         "
+                                       << ": " << GetBlockSize(TRAFFIC_SEGMENT_ID_LIST);
     }
 
     template <typename T> inline void SetBlockSize(BlockID bid, uint64_t entries)
