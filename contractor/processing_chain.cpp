@@ -65,9 +65,9 @@ int Prepare::Run()
 #ifdef WIN32
 #pragma message("Memory consumption on Windows can be higher due to different bit packing")
 #else
-    static_assert(sizeof(NodeBasedEdge) == 24,
+    static_assert(sizeof(NodeBasedEdge) == 32,
                   "changing NodeBasedEdge type has influence on memory consumption!");
-    static_assert(sizeof(EdgeBasedEdge) == 16,
+    static_assert(sizeof(EdgeBasedEdge) == 40,
                   "changing EdgeBasedEdge type has influence on memory consumption!");
 #endif
 
@@ -77,6 +77,13 @@ int Prepare::Run()
 
     SimpleLogger().Write() << "Generating edge-expanded graph representation";
 
+    lua_State *lua_state = luaL_newstate();
+    luabind::open(lua_state);
+
+    EdgeBasedGraphFactory::SpeedProfileProperties speed_profile;
+
+    SetupScriptingEnvironment(lua_state, speed_profile);
+
     TIMER_START(expansion);
 
     auto node_based_edge_list = osrm::make_unique<std::vector<EdgeBasedNode>>();;
@@ -84,7 +91,7 @@ int Prepare::Run()
     auto internal_to_external_node_map = osrm::make_unique<std::vector<QueryNode>>();
     auto graph_size =
         BuildEdgeExpandedGraph(*internal_to_external_node_map,
-                               *node_based_edge_list, edge_based_edge_list);
+                               *node_based_edge_list, edge_based_edge_list, lua_state, speed_profile);
 
     auto number_of_node_based_nodes = graph_size.first;
     auto max_edge_id = graph_size.second;
@@ -100,6 +107,16 @@ int Prepare::Run()
 
     SimpleLogger().Write() << "writing node map ...";
     WriteNodeMapping(std::move(internal_to_external_node_map));
+
+
+    // This is where we make updates to the edge weights for traffic data,
+    // right before we contract the graph.
+    //
+    TIMER_START(traffic);
+    UpdateEdgesWithTrafficData(edge_based_edge_list, lua_state, speed_profile);
+    TIMER_STOP(traffic);
+
+    lua_close(lua_state);
 
     // Contracting the edge-expanded graph
 
@@ -301,6 +318,7 @@ void Prepare::SetupScriptingEnvironment(
 
     speed_profile.u_turn_penalty = 10 * lua_tointeger(lua_state, -1);
     speed_profile.has_turn_penalty_function = lua_function_exists(lua_state, "turn_function");
+    speed_profile.has_traffic_segment_function = lua_function_exists(lua_state, "traffic_segment_function");
 }
 
 /**
@@ -360,20 +378,52 @@ Prepare::LoadNodeBasedGraph(std::unordered_set<NodeID> &barrier_nodes,
 }
 
 
+/*************************************************************
+ * Updates the turn graph with new weights based on a traffic
+ * identifier lookup.
+ * If updated speed data is available, it gets the length of the original
+ * and calculates the new travel time (weight).
+ *
+ * We only update edges that originally had types of
+ *       InternalExtractorEdge::WeightType::SPEED.
+ * for other types, the original_length will be set to INVALID_LENGTH, and
+ * we'll skip those.
+ *
+ * This updates the array in-place (in memory).
+ */
+void
+Prepare::UpdateEdgesWithTrafficData(DeallocatingVector<EdgeBasedEdge> &edge_based_edge_list,
+                                    lua_State *lua,
+                                    const SpeedProfileProperties& speed_profile)
+{
+    if (!speed_profile.has_traffic_segment_function)
+    {
+        return;
+    }
+    for (auto & edge : edge_based_edge_list) 
+    {
+        if (edge.original_length != INVALID_LENGTH)
+        {
+            // TODO: get original traffic_segment_code here from the edge.
+            const double new_speed = luabind::call_function<int>(lua, "traffic_segment_function", edge.traffic_segment_id);
+            if (new_speed > 0)
+            {
+                edge.weight = (edge.original_length * 10.) / (new_speed / 3.6);
+            }
+        }
+    }
+}
 /**
  \brief Building an edge-expanded graph from node-based input and turn restrictions
 */
 std::pair<std::size_t, std::size_t>
 Prepare::BuildEdgeExpandedGraph(std::vector<QueryNode> &internal_to_external_node_map,
                                 std::vector<EdgeBasedNode> &node_based_edge_list,
-                                DeallocatingVector<EdgeBasedEdge> &edge_based_edge_list)
+                                DeallocatingVector<EdgeBasedEdge> &edge_based_edge_list,
+                                lua_State *lua_state,
+                                const SpeedProfileProperties& speed_profile
+                                )
 {
-    lua_State *lua_state = luaL_newstate();
-    luabind::open(lua_state);
-
-    SpeedProfileProperties speed_profile;
-    SetupScriptingEnvironment(lua_state, speed_profile);
-
     std::unordered_set<NodeID> barrier_nodes;
     std::unordered_set<NodeID> traffic_lights;
 

@@ -62,24 +62,25 @@ struct InternalExtractorEdge
     };
 
     explicit InternalExtractorEdge()
-        : result(0, 0, 0, INVALID_TRAFFIC_SEGMENT, 0, false, false, false, false,
-                TRAVEL_MODE_INACCESSIBLE, false)
+        : result(0, 0, 0, 0, false, false, false, false,
+                TRAVEL_MODE_INACCESSIBLE, false, INVALID_TRAFFIC_SEGMENT, INVALID_LENGTH)
     {
     }
 
     explicit InternalExtractorEdge(NodeID source,
                            NodeID target,
                            NodeID name_id,
-                           TrafficSegmentID traffic_segment_id,
                            const WeightData& weight_data,
                            bool forward,
                            bool backward,
                            bool roundabout,
                            bool access_restricted,
                            TravelMode travel_mode,
-                           bool is_split)
-        : result(source, target, name_id, traffic_segment_id, 0, forward, backward, roundabout,
-                 access_restricted, travel_mode, is_split),
+                           bool is_split,
+                           TrafficSegmentID traffic_segment_id,
+                           EdgeWeight original_length)
+        : result(source, target, name_id, 0, forward, backward, roundabout,
+                 access_restricted, travel_mode, is_split, traffic_segment_id, original_length),
           weight_data(weight_data)
     {
     }
@@ -95,13 +96,13 @@ struct InternalExtractorEdge
     // necessary static util functions for stxxl's sorting
     static InternalExtractorEdge min_value()
     {
-        return InternalExtractorEdge(0, 0, 0, INVALID_TRAFFIC_SEGMENT, WeightData(), false, false, false,
-                                     false, TRAVEL_MODE_INACCESSIBLE, false);
+        return InternalExtractorEdge(0, 0, 0, WeightData(), false, false, false,
+                                     false, TRAVEL_MODE_INACCESSIBLE, false, INVALID_TRAFFIC_SEGMENT, INVALID_LENGTH);
     }
     static InternalExtractorEdge max_value()
     {
-        return InternalExtractorEdge(SPECIAL_NODEID, SPECIAL_NODEID, 0, INVALID_TRAFFIC_SEGMENT, WeightData(), false,
-                                     false, false, false, TRAVEL_MODE_INACCESSIBLE, false);
+        return InternalExtractorEdge(SPECIAL_NODEID, SPECIAL_NODEID, 0, WeightData(), false,
+                                     false, false, false, TRAVEL_MODE_INACCESSIBLE, false, INVALID_TRAFFIC_SEGMENT, INVALID_LENGTH);
     }
 };
 
