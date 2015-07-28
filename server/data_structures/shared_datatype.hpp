@@ -62,8 +62,8 @@ struct SharedDataLayout
         HSGR_CHECKSUM,
         TIMESTAMP,
         FILE_INDEX_PATH,
+        TRAFFIC_SEGMENT_ID_LIST,
         NUM_BLOCKS,
-        TRAFFIC_SEGMENT_ID_LIST
     };
 
     std::array<uint64_t, NUM_BLOCKS> num_entries;
