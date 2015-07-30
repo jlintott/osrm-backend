@@ -188,12 +188,29 @@ template <class DataFacadeT> class MapMatchingPlugin : public BasePlugin
                                       raw_route.is_via_leg(i));
             }
             // we need this because we don't run DP
+        osrm::json::Array points;
             for (auto &segment : factory.path_description)
             {
                 segment.necessary = true;
             }
             subtrace.values["geometry"] =
                 factory.AppendGeometryString(route_parameters.compression);
+
+
+            JSONDescriptor<DataFacadeT> j(facade);
+
+            osrm::json::Array json_route_instructions;
+			osrm::json::Array json_traffic_segment_codes;
+            std::vector<typename JSONDescriptor<DataFacadeT>::Segment> shortest_path_segments;
+            j.BuildTextualDescription(factory, json_route_instructions,
+                                    raw_route.shortest_path_length, shortest_path_segments);
+
+			for (auto const& segment : shortest_path_segments) {
+				json_traffic_segment_codes.values.push_back(facade->get_traffic_segment_code_for_id(segment.traffic_segment_id));
+			}
+			subtrace.values["traffic_segment_codes"] = json_traffic_segment_codes;
+
+
         }
 
         subtrace.values["indices"] = osrm::json::make_array(sub.indices);

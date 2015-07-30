@@ -47,6 +47,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 template <class DataFacadeT> class JSONDescriptor final : public BaseDescriptor<DataFacadeT>
 {
+  public:
+    struct Segment
+    {
+        Segment() : name_id(INVALID_NAMEID), length(-1), position(0), traffic_segment_id(INVALID_TRAFFIC_SEGMENT) {}
+        Segment(unsigned n, int l, unsigned p, TrafficSegmentID t) : name_id(n), length(l), position(p), traffic_segment_id(t) {}
+        unsigned name_id;
+        int length;
+        unsigned position;
+		TrafficSegmentID traffic_segment_id;
+    };
   private:
     DataFacadeT *facade;
     DescriptorConfig config;
@@ -61,15 +71,6 @@ template <class DataFacadeT> class JSONDescriptor final : public BaseDescriptor<
         int leave_at_exit;
     } round_about;
 
-    struct Segment
-    {
-        Segment() : name_id(INVALID_NAMEID), length(-1), position(0), traffic_segment_id(INVALID_TRAFFIC_SEGMENT) {}
-        Segment(unsigned n, int l, unsigned p, TrafficSegmentID t) : name_id(n), length(l), position(p), traffic_segment_id(t) {}
-        unsigned name_id;
-        int length;
-        unsigned position;
-		TrafficSegmentID traffic_segment_id;
-    };
     std::vector<Segment> shortest_path_segments, alternative_path_segments;
     ExtractRouteNames<DataFacadeT, Segment> GenerateRouteNames;
 
@@ -152,7 +153,7 @@ template <class DataFacadeT> class JSONDescriptor final : public BaseDescriptor<
 
 			for (auto const& segment : shortest_path_segments) {
 				// TODO: lookup actual code
-				json_traffic_segment_codes.values.push_back(segment.traffic_segment_id);
+				json_traffic_segment_codes.values.push_back(facade->get_traffic_segment_code_for_id(segment.traffic_segment_id));
 			}
 			json_result.values["route_traffic_codes"] = json_traffic_segment_codes;
         }
