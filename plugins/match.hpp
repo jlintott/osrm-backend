@@ -205,12 +205,10 @@ template <class DataFacadeT> class MapMatchingPlugin : public BasePlugin
             j.BuildTextualDescription(factory, json_route_instructions,
                                     raw_route.shortest_path_length, shortest_path_segments);
 
-			for (auto const& segment : shortest_path_segments) {
-				json_traffic_segment_codes.values.push_back(facade->get_traffic_segment_code_for_id(segment.traffic_segment_id));
-			}
-			subtrace.values["traffic_segment_codes"] = json_traffic_segment_codes;
-
-
+            for (auto const& segment : shortest_path_segments) {
+                json_traffic_segment_codes.values.push_back(facade->get_traffic_segment_code_for_id(segment.traffic_segment_id));
+            }
+            subtrace.values["traffic_segment_codes"] = json_traffic_segment_codes;
         }
 
         subtrace.values["indices"] = osrm::json::make_array(sub.indices);
