@@ -49,6 +49,7 @@ struct ContractorConfig
 
     std::string graph_output_path;
     std::string edge_based_graph_filename;
+    std::string speed_lookup_filename;
 
     unsigned requested_num_threads;
 

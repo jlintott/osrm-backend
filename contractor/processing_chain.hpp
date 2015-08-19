@@ -69,9 +69,10 @@ class Prepare
     std::size_t WriteContractedGraph(unsigned number_of_edge_based_nodes,
                                      unsigned edges_crc32,
                                      std::unique_ptr<DeallocatingVector<QueryEdge>> contracted_edge_list);
-    void UpdateEdgesWithTrafficData(DeallocatingVector<EdgeBasedEdge> &edge_based_edge_list,
-                                    lua_State *lua_state,
-                                    const SpeedProfileProperties& speed_profile);
+    void UpdateEdgesWithTrafficData(
+            std::string const& traffic_filename,
+            DeallocatingVector<EdgeBasedEdge> & edge_based_edge_list
+        );
 
   private:
     ContractorConfig config;
