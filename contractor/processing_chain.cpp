@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "contractor.hpp"
 #include "../algorithms/graph_compressor.hpp"
-
+#include "../algorithms/tarjan_scc.hpp"
 #include "../algorithms/crc32_processor.hpp"
 #include "../data_structures/compressed_edge_container.hpp"
 #include "../data_structures/deallocating_vector.hpp"
@@ -103,6 +103,8 @@ int Prepare::Run()
     SimpleLogger().Write() << "building r-tree ...";
     TIMER_START(rtree);
 
+    FindComponents(max_edge_id, edge_based_edge_list, *node_based_edge_list);
+
     BuildRTree(*node_based_edge_list, *internal_to_external_node_map);
 
     TIMER_STOP(rtree);
@@ -150,6 +152,75 @@ int Prepare::Run()
     SimpleLogger().Write() << "finished preprocessing";
 
     return 0;
+}
+
+void Prepare::FindComponents(unsigned max_edge_id, const DeallocatingVector<EdgeBasedEdge>& input_edge_list,
+                             std::vector<EdgeBasedNode>& input_nodes) const
+{
+    struct UncontractedEdgeData { };
+    struct InputEdge {
+        unsigned source;
+        unsigned target;
+        UncontractedEdgeData data;
+
+        bool operator<(const InputEdge& rhs) const
+        {
+            return source < rhs.source || (source == rhs.source && target < rhs.target);
+        }
+
+        bool operator==(const InputEdge& rhs) const
+        {
+             return source == rhs.source && target == rhs.target;
+        }
+    };
+    using UncontractedGraph = StaticGraph<UncontractedEdgeData>;
+    std::vector<InputEdge> edges;
+    edges.reserve(input_edge_list.size() * 2);
+
+    for (const auto& edge : input_edge_list)
+    {
+        BOOST_ASSERT_MSG(static_cast<unsigned int>(std::max(edge.weight, 1)) > 0,
+                         "edge distance < 1");
+        if (edge.forward)
+        {
+            edges.push_back({edge.source, edge.target, {}});
+        }
+
+        if (edge.backward)
+        {
+            edges.push_back({edge.target, edge.source, {}});
+        }
+    }
+
+    // connect forward and backward nodes of each edge
+    for (const auto& node : input_nodes)
+    {
+        if (node.reverse_edge_based_node_id != SPECIAL_NODEID)
+        {
+            edges.push_back({node.forward_edge_based_node_id, node.reverse_edge_based_node_id, {}});
+            edges.push_back({node.reverse_edge_based_node_id, node.forward_edge_based_node_id, {}});
+        }
+    }
+
+    tbb::parallel_sort(edges.begin(), edges.end());
+    auto new_end = std::unique(edges.begin(), edges.end());
+    edges.resize(new_end - edges.begin());
+
+    auto uncontractor_graph = std::make_shared<UncontractedGraph>(max_edge_id+1, edges);
+
+    TarjanSCC<UncontractedGraph> component_search(std::const_pointer_cast<const UncontractedGraph>(uncontractor_graph));
+    component_search.run();
+
+    for (auto& node : input_nodes)
+    {
+        auto forward_component = component_search.get_component_id(node.forward_edge_based_node_id);
+        BOOST_ASSERT(node.reverse_edge_based_node_id == SPECIAL_EDGEID ||
+                    forward_component == component_search.get_component_id(node.reverse_edge_based_node_id));
+
+        const unsigned component_size = component_search.get_component_size(forward_component);
+        const bool is_tiny_component = component_size < 1000;
+        node.component_id = is_tiny_component ? (1 + forward_component) : 0;
+    }
 }
 
 std::size_t Prepare::WriteContractedGraph(unsigned max_node_id,
