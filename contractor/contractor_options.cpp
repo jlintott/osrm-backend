@@ -122,6 +122,7 @@ ContractorOptions::ParseArguments(int argc, char *argv[], ContractorConfig &cont
 
 void ContractorOptions::GenerateOutputFilesNames(ContractorConfig &contractor_config)
 {
+    contractor_config.core_output_path = contractor_config.osrm_input_path.string() + ".core";
     contractor_config.graph_output_path = contractor_config.osrm_input_path.string() + ".hsgr";
     contractor_config.edge_based_graph_filename = contractor_config.osrm_input_path.string() + ".ebg";
     contractor_config.speed_lookup_filename = contractor_config.osrm_input_path.string() + ".speeds";

@@ -80,8 +80,9 @@ int Prepare::Run()
     // Contracting the edge-expanded graph
 
     TIMER_START(contraction);
+    std::vector<bool> is_core_node;
     auto contracted_edge_list = osrm::make_unique<DeallocatingVector<QueryEdge>>();
-    ContractGraph(max_edge_id, edge_based_edge_list, *contracted_edge_list);
+    ContractGraph(max_edge_id, edge_based_edge_list, *contracted_edge_list, is_core_node);
     TIMER_STOP(contraction);
 
     SimpleLogger().Write() << "Contraction took " << TIMER_SEC(contraction) << " sec";
@@ -89,6 +90,7 @@ int Prepare::Run()
     std::size_t number_of_used_edges = WriteContractedGraph(max_edge_id,
                                                             edges_crc32,
                                                             std::move(contracted_edge_list));
+    WriteCoreNodeMarker(std::move(is_core_node));
 
     TIMER_STOP(preparing);
 
@@ -192,6 +194,20 @@ std::size_t Prepare::LoadEdgeExpandedGraph(
     return max_edge_id;
 }
 
+void Prepare::WriteCoreNodeMarker(std::vector<bool>&& in_is_core_node) const
+{
+    std::vector<bool> is_core_node(in_is_core_node);
+    std::vector<char> unpacked_bool_flags(is_core_node.size());
+    for (auto i = 0u; i < is_core_node.size(); ++i)
+    {
+        unpacked_bool_flags[i] = is_core_node[i] ? 1 : 0;
+    }
+
+    boost::filesystem::ofstream core_marker_output_stream(config.core_output_path, std::ios::binary);
+    unsigned size = unpacked_bool_flags.size();
+    core_marker_output_stream.write((char *)&size, sizeof(unsigned));
+    core_marker_output_stream.write((char *)unpacked_bool_flags.data(), sizeof(char)*unpacked_bool_flags.size());
+}
 
 std::size_t Prepare::WriteContractedGraph(unsigned max_node_id,
                                           const unsigned edges_crc32,
@@ -229,7 +245,7 @@ std::size_t Prepare::WriteContractedGraph(unsigned max_node_id,
     SimpleLogger().Write() << "Building node array";
     StaticGraph<EdgeData>::EdgeIterator edge = 0;
     StaticGraph<EdgeData>::EdgeIterator position = 0;
-    StaticGraph<EdgeData>::EdgeIterator last_edge = edge;
+    StaticGraph<EdgeData>::EdgeIterator last_edge;
 
     // initializing 'first_edge'-field of nodes:
     for (const auto node : osrm::irange(0u, max_used_node_id+1))
@@ -267,7 +283,6 @@ std::size_t Prepare::WriteContractedGraph(unsigned max_node_id,
 
     // serialize all edges
     SimpleLogger().Write() << "Building edge array";
-    edge = 0;
     int number_of_used_edges = 0;
 
     StaticGraph<EdgeData>::EdgeArrayEntry current_edge;
@@ -308,11 +323,13 @@ std::size_t Prepare::WriteContractedGraph(unsigned max_node_id,
  */
 void Prepare::ContractGraph(const unsigned max_edge_id,
                             DeallocatingVector<EdgeBasedEdge>& edge_based_edge_list,
-                            DeallocatingVector<QueryEdge>& contracted_edge_list)
+                            DeallocatingVector<QueryEdge>& contracted_edge_list,
+                            std::vector<bool>& is_core_node)
 {
     Contractor contractor(max_edge_id + 1, edge_based_edge_list);
     contractor.Run(config.core_factor);
     contractor.GetEdges(contracted_edge_list);
+    contractor.GetCoreMarker(is_core_node);
 }
 
 

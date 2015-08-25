@@ -53,8 +53,7 @@ class Prepare
     using InputEdge = DynamicGraph<EdgeData>::InputEdge;
     using StaticEdge = StaticGraph<EdgeData>::InputEdge;
 
-    explicit Prepare(const ContractorConfig& contractor_config)
-        : config(contractor_config) {}
+    explicit Prepare(ContractorConfig contractor_config) : config(std::move(contractor_config)) {}
     Prepare(const Prepare &) = delete;
     ~Prepare();
 
@@ -65,7 +64,9 @@ class Prepare
                                    SpeedProfileProperties &speed_profile);
     void ContractGraph(const unsigned max_edge_id,
                        DeallocatingVector<EdgeBasedEdge>& edge_based_edge_list,
-                       DeallocatingVector<QueryEdge>& contracted_edge_list);
+                       DeallocatingVector<QueryEdge>& contracted_edge_list,
+                       std::vector<bool>& is_core_node);
+    void WriteCoreNodeMarker(std::vector<bool>&& is_core_node) const;
     std::size_t WriteContractedGraph(unsigned number_of_edge_based_nodes,
                                      unsigned edges_crc32,
                                      std::unique_ptr<DeallocatingVector<QueryEdge>> contracted_edge_list);

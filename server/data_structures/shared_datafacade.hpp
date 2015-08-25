@@ -86,6 +86,7 @@ template <class EdgeDataT> class SharedDataFacade final : public BaseDataFacade<
     ShM<bool, true>::vector m_edge_is_compressed;
     ShM<unsigned, true>::vector m_geometry_indices;
     ShM<unsigned, true>::vector m_geometry_list;
+    ShM<bool, true>::vector m_is_core_node;
 
     boost::thread_specific_ptr<std::pair<unsigned, std::shared_ptr<SharedRTree>>> m_static_rtree;
     boost::filesystem::path file_index_path;
@@ -203,6 +204,21 @@ template <class EdgeDataT> class SharedDataFacade final : public BaseDataFacade<
         m_names_char_list.swap(names_char_list);
     }
 
+    void LoadCoreInformation()
+    {
+        if (data_layout->num_entries[SharedDataLayout::CORE_MARKER] <= 0)
+        {
+            return;
+        }
+
+        unsigned *core_marker_ptr = data_layout->GetBlockPtr<unsigned>(
+            shared_memory, SharedDataLayout::CORE_MARKER);
+        typename ShM<bool, true>::vector is_core_node(
+            core_marker_ptr,
+            data_layout->num_entries[SharedDataLayout::CORE_MARKER]);
+        m_is_core_node.swap(is_core_node);
+    }
+
     void LoadGeometries()
     {
         unsigned *geometries_compressed_ptr = data_layout->GetBlockPtr<unsigned>(
@@ -278,6 +294,7 @@ template <class EdgeDataT> class SharedDataFacade final : public BaseDataFacade<
             LoadTimestamp();
             LoadViaNodeList();
             LoadNames();
+            LoadCoreInformation();
 
             data_layout->PrintInformation();
 
@@ -468,6 +485,16 @@ template <class EdgeDataT> class SharedDataFacade final : public BaseDataFacade<
             return "__OSRM_UNDEFINED__";
         }
         return get_name_for_id(traffic_segment_id);
+    }
+
+    bool IsCoreNode(const NodeID id) const override final
+    {
+        if (m_is_core_node.size() > 0)
+        {
+            return m_is_core_node.at(id);
+        }
+
+        return false;
     }
 
     std::string GetTimestamp() const override final { return m_timestamp; }

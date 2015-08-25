@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../typedefs.h"
 
 #include <osrm/coordinate.hpp>
+#include <utility>
 
 // Struct fits everything in one cache line
 struct SegmentInformation
@@ -49,7 +50,7 @@ struct SegmentInformation
     bool is_via_location;
     TrafficSegmentID traffic_segment_id;
 
-    explicit SegmentInformation(const FixedPointCoordinate &location,
+    explicit SegmentInformation(FixedPointCoordinate location,
                                 const NodeID name_id,
                                 const EdgeWeight duration,
                                 const float length,
@@ -58,21 +59,20 @@ struct SegmentInformation
                                 const bool is_via_location,
                                 const TravelMode travel_mode,
                                 const TrafficSegmentID traffic_segment_id)
-        : location(location), name_id(name_id), duration(duration), length(length), bearing(0),
+        : location(std::move(location)), name_id(name_id), duration(duration), length(length), bearing(0),
           turn_instruction(turn_instruction), travel_mode(travel_mode), necessary(necessary),
           is_via_location(is_via_location), traffic_segment_id(traffic_segment_id)
-
     {
     }
 
-    explicit SegmentInformation(const FixedPointCoordinate &location,
+    explicit SegmentInformation(FixedPointCoordinate location,
                                 const NodeID name_id,
                                 const EdgeWeight duration,
                                 const float length,
                                 const TurnInstruction turn_instruction,
                                 const TravelMode travel_mode,
                                 const TrafficSegmentID traffic_segment_id)
-        : location(location), name_id(name_id), duration(duration), length(length), bearing(0),
+        : location(std::move(location)), name_id(name_id), duration(duration), length(length), bearing(0),
           turn_instruction(turn_instruction), travel_mode(travel_mode),
           necessary(turn_instruction != TurnInstruction::NoTurn), is_via_location(false),
           traffic_segment_id(traffic_segment_id)

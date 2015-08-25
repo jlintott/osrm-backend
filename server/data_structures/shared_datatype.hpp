@@ -63,6 +63,9 @@ struct SharedDataLayout
         TIMESTAMP,
         FILE_INDEX_PATH,
         TRAFFIC_SEGMENT_ID_LIST,
+        CORE_MARKER,
+        // Note, this one needs to stay last in this list, it's used
+        // as an end marker.
         NUM_BLOCKS,
     };
 
@@ -145,6 +148,8 @@ struct SharedDataLayout
                                        << ": " << GetBlockSize(FILE_INDEX_PATH);
         SimpleLogger().Write(logDEBUG) << "TRAFFIC_SEGMENT_ID_LIST         "
                                        << ": " << GetBlockSize(TRAFFIC_SEGMENT_ID_LIST);
+        SimpleLogger().Write(logDEBUG) << "CORE_MARKER          "
+                                       << ": " << GetBlockSize(CORE_MARKER);
     }
 
     template <typename T> inline void SetBlockSize(BlockID bid, uint64_t entries)
@@ -155,11 +160,11 @@ struct SharedDataLayout
 
     inline uint64_t GetBlockSize(BlockID bid) const
     {
-        // special encoding
-        if (bid == GEOMETRIES_INDICATORS)
+        // special bit encoding
+        if (bid == GEOMETRIES_INDICATORS || bid == CORE_MARKER)
         {
-            return (num_entries[GEOMETRIES_INDICATORS] / 32 + 1) *
-                   entry_size[GEOMETRIES_INDICATORS];
+            return (num_entries[bid] / 32 + 1) *
+                   entry_size[bid];
         }
 
         return num_entries[bid] * entry_size[bid];
