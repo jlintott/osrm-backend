@@ -37,10 +37,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../descriptors/json_descriptor.hpp"
 #include "../routing_algorithms/map_matching.hpp"
 #include "../util/compute_angle.hpp"
-#include "../util/integer_range.hpp"
 #include "../util/json_logger.hpp"
 #include "../util/json_util.hpp"
 #include "../util/string_util.hpp"
+
+#include <boost/range/irange.hpp>
 
 #include <cstdlib>
 
@@ -99,7 +100,7 @@ template <class DataFacadeT> class MapMatchingPlugin : public BasePlugin
             coordinate_calculation::great_circle_distance(input_coords[0], input_coords[1]);
         sub_trace_lengths.resize(input_coords.size());
         sub_trace_lengths[0] = 0;
-        for (const auto current_coordinate : osrm::irange<std::size_t>(0, input_coords.size()))
+        for (const auto current_coordinate : ::boost::irange<std::size_t>(0, input_coords.size()))
         {
             bool allow_uturn = false;
             if (0 < current_coordinate)
@@ -138,7 +139,7 @@ template <class DataFacadeT> class MapMatchingPlugin : public BasePlugin
             else
             {
                 const auto compact_size = candidates.size();
-                for (const auto i : osrm::irange<std::size_t>(0, compact_size))
+                for (const auto i : ::boost::irange<std::size_t>(0, compact_size))
                 {
                     // Split edge if it is bidirectional and append reverse direction to end of list
                     if (candidates[i].first.forward_node_id != SPECIAL_NODEID &&
@@ -176,7 +177,7 @@ template <class DataFacadeT> class MapMatchingPlugin : public BasePlugin
             factory.SetStartSegment(raw_route.segment_end_coordinates.front().source_phantom,
                                     raw_route.source_traversed_in_reverse.front());
             for (const auto i :
-                 osrm::irange<std::size_t>(0, raw_route.unpacked_path_segments.size()))
+                 ::boost::irange<std::size_t>(0, raw_route.unpacked_path_segments.size()))
             {
                 for (const PathData &path_data : raw_route.unpacked_path_segments[i])
                 {

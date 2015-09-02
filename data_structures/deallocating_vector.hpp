@@ -28,9 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef DEALLOCATING_VECTOR_HPP
 #define DEALLOCATING_VECTOR_HPP
 
-#include "../util/integer_range.hpp"
-
 #include <boost/iterator/iterator_facade.hpp>
+#include <boost/range/irange.hpp>
 
 #include <limits>
 #include <utility>
@@ -320,7 +319,7 @@ class DeallocatingVector
         { // down-size
             const std::size_t number_of_necessary_buckets = 1 + (new_size / ELEMENTS_PER_BLOCK);
             for (const auto bucket_index :
-                 osrm::irange(number_of_necessary_buckets, bucket_list.size()))
+                 ::boost::irange(number_of_necessary_buckets, bucket_list.size()))
             {
                 if (nullptr != bucket_list[bucket_index])
                 {
