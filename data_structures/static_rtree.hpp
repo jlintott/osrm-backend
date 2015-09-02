@@ -50,7 +50,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/range/irange.hpp>
-#include <boost/thread.hpp>
 
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_sort.h>
