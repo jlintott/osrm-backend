@@ -305,6 +305,8 @@ template <class DataFacadeT> class JSONDescriptor final : public BaseDescriptor<
                                         const int route_length,
                                         std::vector<Segment> &route_segments_list)
     {
+        (void)route_length; // unused
+
         // Segment information has following format:
         //["instruction id","streetname",length,position,time,"length","earth_direction",azimuth]
         unsigned necessary_segments_running_index = 0;
