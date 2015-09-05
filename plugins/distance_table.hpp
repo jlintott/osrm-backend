@@ -94,8 +94,7 @@ template <class DataFacadeT> class DistanceTablePlugin final : public BasePlugin
                     continue;
                 }
             }
-            facade->IncrementalFindPhantomNodeForCoordinate(route_parameters.coordinates[i],
-                                                            phantom_node_vector[i], 1);
+            phantom_node_vector[i] = facade->IncrementalFindPhantomNodeForCoordinate(route_parameters.coordinates[i], 1);
 
             BOOST_ASSERT(phantom_node_vector[i].front().is_valid(facade->GetNumberOfNodes()));
         }

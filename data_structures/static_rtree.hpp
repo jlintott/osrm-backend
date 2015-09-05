@@ -642,13 +642,49 @@ class StaticRTree
         return result_coordinate.is_valid();
     }
 
-    bool IncrementalFindPhantomNodeForCoordinate(
+    /**
+     * Checks whether a bering sits within a defined range, modulo 360 (i.e. -10 <= 355 <= 10 )
+     *
+     * @param bearing the bearing to check, in degrees, 0-359, 0=north
+     * @param match_bearing the bearing to check against, in degrees, 0-359, 0=north
+     * @param match_bearing_range +/- degrees of the match_bearing to allow (e.g. +/- 5 degrees)
+     * @return true if match_bearing - match_bearing_range <= bearing <= match_bearing + match_bearing_range,
+     * */
+    bool IsBearingWithinBounds(const float bearing, 
+                               const float match_bearing,
+                               const float match_bearing_range)
+    {
+
+        if (match_bearing_range >= 180) return true;
+        if (match_bearing_range <= 0) return false;
+
+        const float normalized_minimum = fmod(match_bearing - match_bearing_range,360) + 360;
+        const float normalized_maximum = fmod(match_bearing + match_bearing_range,360) + 360;
+        const float normalized_bearing = fmod(bearing, 360) + 360;
+
+        return (normalized_minimum <= normalized_bearing && normalized_bearing <= normalized_maximum);
+    }
+
+    /**
+     * Finds the closest point on all edges to the input_coordinate.
+     *
+     * @param input_coordinate the coordinate we're searching for
+     * @param max_number_of_phantom_nodes the maximum number of results to return
+     * @param max_distance the maximum distance to match, in meters
+     * @param max_checked_elements maximum number of elements to try when searching
+     * @param search_bearing limit matches to edges pointed in this direction, in degrees, range 0-359, 0=north
+     * @param search_bearing_range +/- range when limiting matches by bearing
+     * @return a vector of results, empty if no matches
+     **/
+    std::vector<PhantomNode> IncrementalFindPhantomNodeForCoordinate(
         const FixedPointCoordinate &input_coordinate,
-        std::vector<PhantomNode> &result_phantom_node_vector,
         const unsigned max_number_of_phantom_nodes,
         const float max_distance = 1100,
-        const unsigned max_checked_elements = 4 * LEAF_NODE_SIZE)
+        const unsigned max_checked_elements = 4 * LEAF_NODE_SIZE,
+        const float search_bearing = 0,
+        const float search_bearing_range = 180)
     {
+        std::vector<PhantomNode> result_phantom_node_vector;
         unsigned inspected_elements = 0;
         unsigned number_of_elements_from_big_cc = 0;
         unsigned number_of_elements_from_tiny_cc = 0;
@@ -688,10 +724,24 @@ class StaticRTree
                                 m_coordinate_list->at(current_edge.u),
                                 m_coordinate_list->at(current_edge.v), input_coordinate,
                                 projected_coordinate);
+
                         // distance must be non-negative
                         BOOST_ASSERT(0.f <= current_perpendicular_distance);
 
-                        traversal_queue.emplace(current_perpendicular_distance, current_edge);
+                        const float forward_edge_bearing = coordinate_calculation::bearing(
+                                m_coordinate_list->at(current_edge.u),
+                                m_coordinate_list->at(current_edge.v));
+
+                        const float backward_edge_bearing = (forward_edge_bearing + 180) > 360 
+                                                                ? (forward_edge_bearing - 180) 
+                                                                : (forward_edge_bearing + 180);
+
+                        // Keep searching, as long as at least one direction is within bearing range
+                        if (IsBearingWithinBounds(forward_edge_bearing, search_bearing, search_bearing_range) &&
+                            IsBearingWithinBounds(backward_edge_bearing, search_bearing, search_bearing_range))
+                        {
+                            traversal_queue.emplace(current_perpendicular_distance, current_edge);
+                        }
                     }
                 }
                 else
@@ -726,6 +776,23 @@ class StaticRTree
                     continue;
                 }
 
+                const float forward_segment_bearing = coordinate_calculation::bearing(
+                    m_coordinate_list->at(current_segment.u),
+                    m_coordinate_list->at(current_segment.v));
+
+                const float backward_segment_bearing = (forward_segment_bearing + 180) > 360 
+                                                        ? (forward_segment_bearing - 180) 
+                                                        : (forward_segment_bearing + 180);
+
+                // Skip this edge if it's not heading the same way as us.  The defaults
+                // args (see method signature) should not skip any edges, maintaining
+                // the original search behaviour.
+                if (!IsBearingWithinBounds(forward_segment_bearing, search_bearing, search_bearing_range) &&
+                    !IsBearingWithinBounds(backward_segment_bearing, search_bearing, search_bearing_range))
+                {
+                    continue;
+                }
+
                 // check if it is smaller than what we had before
                 float current_ratio = 0.f;
                 FixedPointCoordinate foot_point_coordinate_on_segment;
@@ -746,6 +813,25 @@ class StaticRTree
                 // set forward and reverse weights on the phantom node
                 SetForwardAndReverseWeightsOnPhantomNode(current_segment,
                                                          result_phantom_node_vector.back());
+
+
+                // If we make it here, one of the following two will be true.
+                // If the forward bearing isn't with range, discard the forward edge
+                if (!IsBearingWithinBounds(forward_segment_bearing, search_bearing, search_bearing_range)) 
+                {
+                    result_phantom_node_vector.back().forward_node_id = SPECIAL_NODEID;
+                    result_phantom_node_vector.back().forward_weight = INVALID_EDGE_WEIGHT;
+                }
+                // If the backward bearing is out of range, then discard the backward edge
+                else if (!IsBearingWithinBounds(backward_segment_bearing, search_bearing, search_bearing_range)) 
+                {
+                    result_phantom_node_vector.back().reverse_node_id = SPECIAL_NODEID;
+                    result_phantom_node_vector.back().reverse_weight = INVALID_EDGE_WEIGHT;
+                }
+                else {
+                    BOOST_ASSERT_MSG(false, "Neither bearing was within search range, this should not be possible.");
+                }
+
 
                 // update counts on what we found from which result class
                 if (current_segment.is_in_tiny_cc())
@@ -777,7 +863,7 @@ class StaticRTree
 // SimpleLogger().Write() << "max_checked_elements: " << max_checked_elements;
 // SimpleLogger().Write() << "pruned_elements: " << pruned_elements;
 #endif
-        return !result_phantom_node_vector.empty();
+        return result_phantom_node_vector;
     }
 
     // Returns elements within max_distance.
@@ -787,7 +873,9 @@ class StaticRTree
         const FixedPointCoordinate &input_coordinate,
         std::vector<std::pair<PhantomNode, double>> &result_phantom_node_vector,
         const double max_distance,
-        const unsigned max_checked_elements = 4 * LEAF_NODE_SIZE)
+        const unsigned max_checked_elements = 4 * LEAF_NODE_SIZE,
+        const float min_bearing = -1,
+        const float max_bearing = 360)
     {
         unsigned inspected_elements = 0;
 

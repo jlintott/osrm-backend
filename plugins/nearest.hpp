@@ -59,9 +59,7 @@ template <class DataFacadeT> class NearestPlugin final : public BasePlugin
             return 400;
         }
         auto number_of_results = static_cast<std::size_t>(route_parameters.num_results);
-        std::vector<PhantomNode> phantom_node_vector;
-        facade->IncrementalFindPhantomNodeForCoordinate(route_parameters.coordinates.front(),
-                                                        phantom_node_vector,
+        std::vector<PhantomNode> phantom_node_vector = facade->IncrementalFindPhantomNodeForCoordinate(route_parameters.coordinates.front(),
                                                         static_cast<int>(number_of_results));
 
         if (phantom_node_vector.empty() || !phantom_node_vector.front().is_valid())

@@ -92,8 +92,7 @@ template <class DataFacadeT> class RoundTripPlugin final : public BasePlugin
                     continue;
                 }
             }
-            facade->IncrementalFindPhantomNodeForCoordinate(route_parameters.coordinates[i],
-                                                            phantom_node_vector[i], 1);
+            phantom_node_vector[i] = facade->IncrementalFindPhantomNodeForCoordinate(route_parameters.coordinates[i], 1);
             if (phantom_node_vector[i].size() > 1)
             {
                 phantom_node_vector[i].erase(std::begin(phantom_node_vector[i]));

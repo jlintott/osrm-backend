@@ -43,6 +43,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
+#include <boost/optional/optional.hpp>
+
 using EdgeRange = osrm::range<EdgeID>;
 
 template <class EdgeDataT> class BaseDataFacade
@@ -96,14 +98,13 @@ template <class EdgeDataT> class BaseDataFacade
                                                     FixedPointCoordinate &result,
                                                     const unsigned zoom_level = 18) = 0;
 
-    virtual bool
+    virtual std::vector<PhantomNode>
     IncrementalFindPhantomNodeForCoordinate(const FixedPointCoordinate &input_coordinate,
-                                            std::vector<PhantomNode> &resulting_phantom_node_vector,
                                             const unsigned number_of_results) = 0;
 
-    virtual bool
-    IncrementalFindPhantomNodeForCoordinate(const FixedPointCoordinate &input_coordinate,
-                                            PhantomNode &resulting_phantom_node) = 0;
+    virtual boost::optional<PhantomNode &>
+    IncrementalFindPhantomNodeForCoordinate(const FixedPointCoordinate &input_coordinate) = 0;
+
     virtual bool IncrementalFindPhantomNodeForCoordinateWithMaxDistance(
         const FixedPointCoordinate &input_coordinate,
         std::vector<std::pair<PhantomNode, double>> &resulting_phantom_node_vector,

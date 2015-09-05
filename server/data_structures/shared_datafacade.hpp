@@ -392,24 +392,22 @@ template <class EdgeDataT> class SharedDataFacade final : public BaseDataFacade<
                                                                           zoom_level);
     }
 
-    bool IncrementalFindPhantomNodeForCoordinate(const FixedPointCoordinate &input_coordinate,
-                                                 PhantomNode &resulting_phantom_node) override final
+    boost::optional<PhantomNode &>
+    IncrementalFindPhantomNodeForCoordinate(const FixedPointCoordinate &input_coordinate) override final
     {
-        std::vector<PhantomNode> resulting_phantom_node_vector;
-        auto result = IncrementalFindPhantomNodeForCoordinate(input_coordinate,
-                                                              resulting_phantom_node_vector, 1);
-        if (result)
+        auto resulting_phantom_node_vector = IncrementalFindPhantomNodeForCoordinate(input_coordinate, 1);
+        if (!resulting_phantom_node_vector.empty())
         {
             BOOST_ASSERT(!resulting_phantom_node_vector.empty());
-            resulting_phantom_node = resulting_phantom_node_vector.front();
+
+            return resulting_phantom_node_vector.front();
         }
 
-        return result;
+        return boost::optional<PhantomNode &>();
     }
 
-    bool
+    std::vector<PhantomNode>
     IncrementalFindPhantomNodeForCoordinate(const FixedPointCoordinate &input_coordinate,
-                                            std::vector<PhantomNode> &resulting_phantom_node_vector,
                                             const unsigned number_of_results) override final
     {
         if (!m_static_rtree.get() || CURRENT_TIMESTAMP != m_static_rtree->first)
@@ -418,7 +416,7 @@ template <class EdgeDataT> class SharedDataFacade final : public BaseDataFacade<
         }
 
         return m_static_rtree->second->IncrementalFindPhantomNodeForCoordinate(
-            input_coordinate, resulting_phantom_node_vector, number_of_results);
+            input_coordinate, number_of_results);
     }
 
     bool IncrementalFindPhantomNodeForCoordinateWithMaxDistance(

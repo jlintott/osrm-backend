@@ -95,11 +95,9 @@ template <class DataFacadeT> class ViaRoutePlugin final : public BasePlugin
                     continue;
                 }
             }
-            std::vector<PhantomNode> phantom_node_vector;
-            if (facade->IncrementalFindPhantomNodeForCoordinate(route_parameters.coordinates[i],
-                                                                phantom_node_vector, 1))
+            std::vector<PhantomNode> phantom_node_vector = facade->IncrementalFindPhantomNodeForCoordinate(route_parameters.coordinates[i], 1);
+            if (!phantom_node_vector.empty())
             {
-                BOOST_ASSERT(!phantom_node_vector.empty());
                 phantom_node_pair_list[i].first = phantom_node_vector.front();
                 if (phantom_node_vector.size() > 1)
                 {
