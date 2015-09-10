@@ -39,27 +39,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, const char *argv[])
 {
-    LogPolicy::GetInstance().Unmute();
+    //LogPolicy::GetInstance().Unmute();
     try
     {
-        std::string ip_address;
-        int ip_port, requested_thread_num, max_locations_map_matching;
-        bool trial_run = false;
+        Console.Write("Test")
+        //std::string ip_address;
+        //int ip_port, requested_thread_num, max_locations_map_matching;
+        //bool trial_run = false;
         libosrm_config lib_config;
-        const unsigned init_result = GenerateServerProgramOptions(
-            argc, argv, lib_config.server_paths, ip_address, ip_port, requested_thread_num,
-            lib_config.use_shared_memory, trial_run, lib_config.max_locations_distance_table,
-            max_locations_map_matching);
+        //const unsigned init_result = GenerateServerProgramOptions(
+        //    argc, argv, lib_config.server_paths, ip_address, ip_port, requested_thread_num,
+        //    lib_config.use_shared_memory, trial_run, lib_config.max_locations_distance_table,
+        //    max_locations_map_matching);
 
-        if (init_result == INIT_OK_DO_NOT_START_ENGINE)
-        {
-            return 0;
-        }
-        if (init_result == INIT_FAILED)
-        {
-            return 1;
-        }
-        SimpleLogger().Write() << "starting up engines, " << g_GIT_DESCRIPTION;
+       // if (init_result == INIT_OK_DO_NOT_START_ENGINE)
+       // {
+       //     return 0;
+       // }
+       // if (init_result == INIT_FAILED)
+       // {
+       //     return 1;
+       // }
+       // SimpleLogger().Write() << "starting up engines, " << g_GIT_DESCRIPTION;
 
         OSRM routing_machine(lib_config);
 
@@ -84,8 +85,8 @@ int main(int argc, const char *argv[])
                                                   13.415852 * COORDINATE_PRECISION);
         osrm::json::Object json_result;
         const int result_code = routing_machine.RunQuery(route_parameters, json_result);
-        SimpleLogger().Write() << "http code: " << result_code;
-        osrm::json::render(SimpleLogger().Write(), json_result);
+        //SimpleLogger().Write() << "http code: " << result_code;
+        osrm::json::render(Console.Write(), json_result);
     }
     catch (std::exception &current_exception)
     {
